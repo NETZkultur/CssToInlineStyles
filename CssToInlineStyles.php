@@ -261,77 +261,79 @@ class CssToInlineStyles
 
                 // loop found elements
                 foreach ($elements as $element) {
-                    // no styles stored?
-                    if ($element->attributes->getNamedItem(
-                        'data-css-to-inline-styles-original-styles'
-                    ) == null) {
+                    if(is_object($element) && (is_object($element->attributes))) {
+                        // no styles stored?
+                        if ($element->attributes->getNamedItem(
+                            'data-css-to-inline-styles-original-styles'
+                        ) == null) {
+                            // init var
+                            $originalStyle = '';
+                            if ($element->attributes->getNamedItem('style') !== null) {
+                                $originalStyle = $element->attributes->getNamedItem('style')->value;
+                            }
+    
+                            // store original styles
+                            $element->setAttribute(
+                                'data-css-to-inline-styles-original-styles',
+                                $originalStyle
+                            );
+    
+                            // clear the styles
+                            $element->setAttribute('style', '');
+                        }
+    
                         // init var
-                        $originalStyle = '';
-                        if ($element->attributes->getNamedItem('style') !== null) {
-                            $originalStyle = $element->attributes->getNamedItem('style')->value;
+                        $properties = array();
+    
+                        // get current styles
+                        $stylesAttribute = $element->attributes->getNamedItem('style');
+    
+                        // any styles defined before?
+                        if ($stylesAttribute !== null) {
+                            // get value for the styles attribute
+                            $definedStyles = (string) $stylesAttribute->value;
+    
+                            // split into properties
+                            $definedProperties = (array) explode(';', $definedStyles);
+    
+                            // loop properties
+                            foreach ($definedProperties as $property) {
+                                // validate property
+                                if($property == '') continue;
+    
+                                // split into chunks
+                                $chunks = (array) explode(':', trim($property), 2);
+    
+                                // validate
+                                if(!isset($chunks[1])) continue;
+    
+                                // loop chunks
+                                $properties[$chunks[0]] = trim($chunks[1]);
+                            }
                         }
-
-                        // store original styles
-                        $element->setAttribute(
-                            'data-css-to-inline-styles-original-styles',
-                            $originalStyle
-                        );
-
-                        // clear the styles
-                        $element->setAttribute('style', '');
-                    }
-
-                    // init var
-                    $properties = array();
-
-                    // get current styles
-                    $stylesAttribute = $element->attributes->getNamedItem('style');
-
-                    // any styles defined before?
-                    if ($stylesAttribute !== null) {
-                        // get value for the styles attribute
-                        $definedStyles = (string) $stylesAttribute->value;
-
-                        // split into properties
-                        $definedProperties = (array) explode(';', $definedStyles);
-
-                        // loop properties
-                        foreach ($definedProperties as $property) {
-                            // validate property
-                            if($property == '') continue;
-
-                            // split into chunks
-                            $chunks = (array) explode(':', trim($property), 2);
-
-                            // validate
-                            if(!isset($chunks[1])) continue;
-
-                            // loop chunks
-                            $properties[$chunks[0]] = trim($chunks[1]);
+    
+                        // add new properties into the list
+                        foreach ($rule['properties'] as $key => $value) {
+                            $properties[$key] = $value;
                         }
-                    }
-
-                    // add new properties into the list
-                    foreach ($rule['properties'] as $key => $value) {
-                        $properties[$key] = $value;
-                    }
-
-                    // build string
-                    $propertyChunks = array();
-
-                    // build chunks
-                    foreach ($properties as $key => $values) {
-                        foreach ((array) $values as $value) {
-                            $propertyChunks[] = $key . ': ' . $value . ';';
+    
+                        // build string
+                        $propertyChunks = array();
+    
+                        // build chunks
+                        foreach ($properties as $key => $values) {
+                            foreach ((array) $values as $value) {
+                                $propertyChunks[] = $key . ': ' . $value . ';';
+                            }
                         }
-                    }
-
-                    // build properties string
-                    $propertiesString = implode(' ', $propertyChunks);
-
-                    // set attribute
-                    if ($propertiesString != '') {
-                        $element->setAttribute('style', $propertiesString);
+    
+                        // build properties string
+                        $propertiesString = implode(' ', $propertyChunks);
+    
+                        // set attribute
+                        if ($propertiesString != '') {
+                            $element->setAttribute('style', $propertiesString);
+                        }
                     }
                 }
             }
